@@ -1,0 +1,24 @@
+# Python
+*.pyc
+__pycache__/
+
+# Virtualenv (if using a venv or other env manager, ignore the env directory)
+env/
+venv/
+workout_env/  # Ignore this if you use `pyenv local`
+
+# Django
+*.sqlite3
+*.log
+
+# macOS
+.DS_Store
+
+# Node (if you plan to use Node for frontend)
+node_modules/
+
+# Environment Variables
+.env
+
+# VSCode
+.vscode/
