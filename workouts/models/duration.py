@@ -1,21 +1,17 @@
-from enum import Enum
 from django.db import models
+from polymorphic.models import PolymorphicModel
 
 
-class DurationType(Enum):
-    DISTANCE = 1
-    TIME = 2
-    CALORIC = 3
-    HEART_RATE = 4
-    POWER = 5
+class BaseDuration(PolymorphicModel):
 
-
-class BaseDuration(models.Model):
+    class DurationType(models.IntegerChoices):
+        DISTANCE = 1, "DISTANCE"
+        TIME = 2, "TIME"
+        CALORIC = 3, "CALORIC"
+        HEART_RATE = 4, "HEART_RATE"
+        POWER = 5, "POWER"
 
     value = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        abstract = True
 
     def __str__(self):
         return f"{self.value} {self.unit}"
@@ -27,16 +23,17 @@ class BaseDuration(models.Model):
     @staticmethod
     def get_duration_model(duration_type: DurationType):
         duration_mapping = {
-            DurationType.DISTANCE: DistanceDuration,
-            DurationType.TIME: TimeDuration,
-            DurationType.CALORIC: CaloricDuration,
-            DurationType.HEART_RATE: HeartRateDuration,
-            DurationType.POWER: PowerDuration,
+            BaseDuration.DurationType.DISTANCE: DistanceDuration,
+            BaseDuration.DurationType.TIME: TimeDuration,
+            BaseDuration.DurationType.CALORIC: CaloricDuration,
+            BaseDuration.DurationType.HEART_RATE: HeartRateDuration,
+            BaseDuration.DurationType.POWER: PowerDuration,
         }
         return duration_mapping.get(duration_type)
 
 
 class DistanceDuration(BaseDuration):
+    duration_string = BaseDuration.DurationType.DISTANCE.name
 
     class DistanceUnitChoices(models.IntegerChoices):
         MILES = 1, "Miles"
@@ -49,6 +46,7 @@ class DistanceDuration(BaseDuration):
 
 
 class TimeDuration(BaseDuration):
+    duration_string = BaseDuration.DurationType.TIME.name
 
     class TimeUnitChoices(models.IntegerChoices):
         SECONDS = 1, "Seconds"
@@ -69,6 +67,7 @@ class TimeDuration(BaseDuration):
 
 
 class CaloricDuration(BaseDuration):
+    duration_string = BaseDuration.DurationType.CALORIC.name
 
     class CaloricUnitChoices(models.IntegerChoices):
         CALORIES = 1, "Calories"
@@ -80,6 +79,7 @@ class CaloricDuration(BaseDuration):
 
 
 class HeartRateDuration(BaseDuration):
+    duration_string = BaseDuration.DurationType.HEART_RATE.name
 
     class HeartRateUnitChoices(models.IntegerChoices):
         BPM = 1, "Beats Per Minute"
@@ -91,6 +91,7 @@ class HeartRateDuration(BaseDuration):
 
 
 class PowerDuration(BaseDuration):
+    duration_string = BaseDuration.DurationType.POWER.name
 
     class PowerUnitChoices(models.IntegerChoices):
         WATTS = 1, "Watts"

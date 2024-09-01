@@ -1,7 +1,8 @@
 from django.db import models, transaction
 from django.contrib.auth.models import User
+import logging
 
-from workouts.models.interval import Interval
+from workouts.models.interval import BaseInterval, Interval
 
 
 class Workout(models.Model):
@@ -17,33 +18,33 @@ class Workout(models.Model):
     workout_type = models.PositiveSmallIntegerField(
         choices=WorkoutType.choices, default=WorkoutType.RUN
     )
-    first_interval = models.OneToOneField(
-        Interval,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="workout_first_interval",
-    )
-    last_interval = models.OneToOneField(
-        Interval,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="workout_last_interval",
-    )
+    intervals = models.ManyToManyField(BaseInterval, related_name="workouts")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
-    def intervals(self):
-        intervals = []
+    def sorted_intervals(self):
+        intervals = self.intervals.all()
+        object_map = {interval.pk: interval for interval in intervals}
+        visited = set()
+        sorted_intervals = []
 
-        interval = self.last_interval
-        while interval:
-            intervals.append(interval)
-            interval = interval.parent
+        def _add_to_sorted_pks(interval: Interval):
 
-        return list(reversed(intervals))
+            if interval.pk in visited:
+                return
+
+            parent_pk = interval.parent
+            if parent_pk is not None and parent_pk in object_map:
+                _add_to_sorted_pks(object_map[parent_pk])
+
+            sorted_intervals.append(interval)
+            visited.add(interval.pk)
+
+        for i in intervals:
+            _add_to_sorted_pks(i)
+
+        return sorted_intervals
 
     def __str__(self):
         return self.title

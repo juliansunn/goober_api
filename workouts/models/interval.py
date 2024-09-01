@@ -1,7 +1,8 @@
 from typing import Union
 from django.db import models
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
+
+# from django.contrib.contenttypes.models import ContentType
+# from django.contrib.contenttypes.fields import GenericForeignKey
 
 from polymorphic.models import PolymorphicModel
 
@@ -9,7 +10,6 @@ from workouts.models.duration import (
     BaseDuration,
     CaloricDuration,
     DistanceDuration,
-    DurationType,
     HeartRateDuration,
     PowerDuration,
     TimeDuration,
@@ -32,28 +32,26 @@ class BaseInterval(PolymorphicModel):
     )
 
     # Generic ForeignKey to handle relationships with any Duration type
-    duration_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    duration_id = models.PositiveIntegerField()
-    duration = GenericForeignKey("duration_type", "duration_id")
+    # duration_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    # duration_id = models.PositiveIntegerField()
+    # duration = GenericForeignKey("duration_type", "duration_id")
+
+    duration = models.ForeignKey(
+        BaseDuration, on_delete=models.CASCADE, related_name="intervals"
+    )
 
     perceived_effort = models.PositiveSmallIntegerField(
         choices=EFFORT_CHOICES, blank=True, null=True
     )
-    parent = models.OneToOneField(
-        "self",
-        on_delete=models.SET_NULL,
-        related_name="next_interval",
-        null=True,
+    parent = models.PositiveIntegerField(
         blank=True,
+        null=True,
+        help_text="This will serve as a pointer to the parent intervals PK.",
     )
 
     def delete(self, *args, **kwargs):
-        if self.parent:
-            self.parent.next_interval = self.next_interval
-            self.parent.save()
-        if self.next_interval:
-            self.next_interval.parent = self.parent
-            self.next_interval.save()
+        # link the parent to the next interval
+
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -67,13 +65,13 @@ class Interval(BaseInterval):
 class Repeat(BaseInterval):
     repititions = models.PositiveIntegerField(default=1)
     rest_interval = models.OneToOneField(
-        "Interval", on_delete=models.CASCADE, related_name="rest_interval", null=True
+        "Interval", on_delete=models.CASCADE, related_name="repeat_interval", null=True
     )
 
 
 def create_warmup(
     duration_value: int,
-    duration_type: DurationType,
+    duration_type: BaseDuration.DurationType,
     duration_unit: Union[
         TimeDuration.TimeUnitChoices,
         DistanceDuration.DistanceUnitChoices,
@@ -94,7 +92,7 @@ def create_warmup(
 
 def create_cool_down(
     duration_value: int,
-    duration_type: DurationType,
+    duration_type: BaseDuration.DurationType,
     duration_unit: Union[
         TimeDuration.TimeUnitChoices,
         DistanceDuration.DistanceUnitChoices,
@@ -115,7 +113,7 @@ def create_cool_down(
 
 def create_interval(
     duration_value: int,
-    duration_type: DurationType,
+    duration_type: BaseDuration.DurationType,
     duration_unit: Union[
         TimeDuration.TimeUnitChoices,
         DistanceDuration.DistanceUnitChoices,
@@ -131,14 +129,14 @@ def create_interval(
     interval_duration = model.objects.create(value=duration_value, unit=duration_unit)
     interval = Interval.objects.create(type=interval_type, duration=interval_duration)
     if parent:
-        interval.parent = parent
+        interval.parent = parent.pk
         interval.save()
     return interval
 
 
 def create_repeat(
     duration_value: int,
-    duration_type: DurationType,
+    duration_type: BaseDuration.DurationType,
     duration_unit: Union[
         TimeDuration.TimeUnitChoices,
         DistanceDuration.DistanceUnitChoices,
@@ -161,9 +159,7 @@ def create_repeat(
         rest_interval=rest_interval,
     )
     if parent:
-        repeat.parent = parent
+        repeat.parent = parent.pk
         repeat.save()
-        parent.next_interval = repeat
-        parent.save()
 
     return repeat
