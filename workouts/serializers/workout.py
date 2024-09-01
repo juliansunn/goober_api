@@ -20,8 +20,8 @@ class WorkoutSerializer(serializers.ModelSerializer):
     author = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     intervals = serializers.SerializerMethodField()
 
-    def get_intervals(self, obj):
-        return IntervalSerializer(obj.intervals, many=True).data
+    def get_intervals(self, obj: Workout):
+        return IntervalSerializer(obj.sorted_intervals, many=True).data
 
     def create(self, validated_data):
         return Workout.objects.create(**validated_data)
