@@ -10,6 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
+import dotenv
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -74,14 +77,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "goober_api.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+dotenv_path = os.path.join(os.path.dirname(__file__), "../.env")
+dotenv.load_dotenv(dotenv_path)
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+print(f"Loaded DATABASE_URL: {DATABASE_URL}")
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.parse(
+        url=DATABASE_URL, conn_max_age=600, conn_health_checks=True
+    )
 }
 
 
